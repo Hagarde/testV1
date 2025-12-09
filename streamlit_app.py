@@ -1,151 +1,224 @@
 import streamlit as st
 import pandas as pd
-import math
-from pathlib import Path
+import os
+from datetime import datetime
+from pycti import OpenCTIApiClient
 
-# Set the title and favicon that appear in the Browser's tab bar.
+# -----------------------------------------------------------------------------
+# 1. CONFIGURATION DE LA PAGE
+# -----------------------------------------------------------------------------
 st.set_page_config(
-    page_title='GDP dashboard',
-    page_icon=':earth_americas:', # This is an emoji shortcode. Could be a URL too.
+    page_title="Déclaration d'Incident Sécurité",
+    page_icon="🛡️",
+    layout="wide"
 )
 
-# -----------------------------------------------------------------------------
-# Declare some useful functions.
-
-@st.cache_data
-def get_gdp_data():
-    """Grab GDP data from a CSV file.
-
-    This uses caching to avoid having to read the file every time. If we were
-    reading from an HTTP endpoint instead of a file, it's a good idea to set
-    a maximum age to the cache with the TTL argument: @st.cache_data(ttl='1d')
-    """
-
-    # Instead of a CSV on disk, you could read from an HTTP endpoint here too.
-    DATA_FILENAME = Path(__file__).parent/'data/gdp_data.csv'
-    raw_gdp_df = pd.read_csv(DATA_FILENAME)
-
-    MIN_YEAR = 1960
-    MAX_YEAR = 2022
-
-    # The data above has columns like:
-    # - Country Name
-    # - Country Code
-    # - [Stuff I don't care about]
-    # - GDP for 1960
-    # - GDP for 1961
-    # - GDP for 1962
-    # - ...
-    # - GDP for 2022
-    #
-    # ...but I want this instead:
-    # - Country Name
-    # - Country Code
-    # - Year
-    # - GDP
-    #
-    # So let's pivot all those year-columns into two: Year and GDP
-    gdp_df = raw_gdp_df.melt(
-        ['Country Code'],
-        [str(x) for x in range(MIN_YEAR, MAX_YEAR + 1)],
-        'Year',
-        'GDP',
-    )
-
-    # Convert years from string to integers
-    gdp_df['Year'] = pd.to_numeric(gdp_df['Year'])
-
-    return gdp_df
-
-gdp_df = get_gdp_data()
+st.title("🛡️ Portail de Remontée d'Incidents")
+st.markdown("""
+Ce formulaire permet de structurer la remontée d'information avant envoi vers **OpenCTI**.
+Les champs de localisation se mettent à jour dynamiquement.
+""")
 
 # -----------------------------------------------------------------------------
-# Draw the actual page
+# 2. GESTION DES DONNÉES DE RÉFÉRENCE (MOCKUP & CHARGEMENT)
+# -----------------------------------------------------------------------------
 
-# Set the title that appears at the top of the page.
-'''
-# :earth_americas: GDP dashboard
+# Dictionnaires pour la catégorisation (Facilement éditable)
+CATEGORIES_CIBLES = {
+    "Infrastructures Réseau": ["Pylône", "Câble aérien", "Câble souterrain", "Transformateur", "Armoire"],
+    "Bâtiments & Sites": ["Agence commerciale", "Siège", "Entrepôt logistique", "Poste de garde", "Sciage de pylône/Déboulonnage"],
+    "Matériel & Véhicules": ["Véhicule de service", "Outillage", "Stock de cuivre", "Groupe électrogène"],
+    "Systèmes d'Information": ["Poste de travail", "Serveur", "Données clients", "Application métier"],
+    "Autre": ["Autre"]
+}
 
-Browse GDP data from the [World Bank Open Data](https://data.worldbank.org/) website. As you'll
-notice, the data only goes to 2022 right now, and datapoints for certain years are often missing.
-But it's otherwise a great (and did I mention _free_?) source of data.
-'''
-
-# Add some spacing
-''
-''
-
-min_value = gdp_df['Year'].min()
-max_value = gdp_df['Year'].max()
-
-from_year, to_year = st.slider(
-    'Which years are you interested in?',
-    min_value=min_value,
-    max_value=max_value,
-    value=[min_value, max_value])
-
-countries = gdp_df['Country Code'].unique()
-
-if not len(countries):
-    st.warning("Select at least one country")
-
-selected_countries = st.multiselect(
-    'Which countries would you like to view?',
-    countries,
-    ['DEU', 'FRA', 'GBR', 'BRA', 'MEX', 'JPN'])
-
-''
-''
-''
-
-# Filter the data
-filtered_gdp_df = gdp_df[
-    (gdp_df['Country Code'].isin(selected_countries))
-    & (gdp_df['Year'] <= to_year)
-    & (from_year <= gdp_df['Year'])
+TYPES_ACTES = [
+    "Vol (Simple)", "Vol (Effraction)", "Dégradation / Vandalisme", 
+    "Intrusion", "Incendie", "Sabotage", "Cyberattaque", "Agressions"
 ]
 
-st.header('GDP over time', divider='gray')
+BARRIERES = ["Aucune", "Portail", "Palplanche", "Grillage simple", "Clôture électrifiée", "Mur", "Porte blindée", "Contrôle d'accès"]
 
-''
+# Fonction pour créer un fichier de données fictif si aucun n'existe (pour que le code tourne direct)
+def verifier_et_creer_donnees_demo():
+    chemin_csv = "locations_db.csv"
+    if not os.path.exists(chemin_csv):
+        data = {
+            "Région": ["Ile-de-France", "Ile-de-France", "Ile-de-France", "PACA", "PACA", "Auvergne-Rhône-Alpes"],
+            "Département": ["Paris", "Yvelines", "Seine-et-Marne", "Bouches-du-Rhône", "Var", "Rhône"],
+            "GMR": ["GMR-Paris-Nord", "GMR-Ouest", "GMR-Est", "GMR-Marseille", "GMR-Toulon", "GMR-Lyon"],
+            "GDP": ["GDP-Batignolles", "GDP-Versailles", "GDP-Melun", "GDP-Prado", "GDP-Hyères", "GDP-Part-Dieu"]
+        }
+        df = pd.DataFrame(data)
+        df.to_csv(chemin_csv, index=False)
 
-st.line_chart(
-    filtered_gdp_df,
-    x='Year',
-    y='GDP',
-    color='Country Code',
-)
+verifier_et_creer_donnees_demo()
 
-''
-''
+# Chargement optimisé avec Cache
+@st.cache_data
+def charger_locations():
+    # Priorité au format Parquet (plus rapide), sinon CSV
+    if os.path.exists("locations_db.parquet"):
+        return pd.read_parquet("locations_db.parquet")
+    elif os.path.exists("locations_db.csv"):
+        return pd.read_csv("locations_db.csv")
+    else:
+        return pd.DataFrame() # Retourne vide si rien trouvé
+
+df_locations = charger_locations()
+
+# -----------------------------------------------------------------------------
+# 3. SIDEBAR : CONNEXION OPENCTI
+# -----------------------------------------------------------------------------
+# Récupération depuis secrets.toml ou champs vides
+api_url = st.secrets["opencti"]["url"] if "opencti" in st.secrets else ""
+api_token = st.secrets["opencti"]["token"] if "opencti" in st.secrets else ""
+
+# -----------------------------------------------------------------------------
+# 4. SÉLECTEURS EN CASCADE (HORS FORMULAIRE)
+# -----------------------------------------------------------------------------
+# Ils sont hors du st.form pour permettre le rafraîchissement immédiat de la page
+
+st.subheader("1. Localisation de l'incident")
+
+if not df_locations.empty:
+    col_loc1, col_loc2, col_loc3, col_loc4 = st.columns(4)
+    
+    with col_loc1:
+        region_sel = st.selectbox("Région", sorted(df_locations["Région"].unique()))
+    
+    with col_loc2:
+        # Filtre les départements selon la région choisie
+        deps = sorted(df_locations[df_locations["Région"] == region_sel]["Département"].unique())
+        dept_sel = st.selectbox("Département", deps)
+        
+    with col_loc3:
+        # Filtre les GMR selon le département choisi
+        gmrs = sorted(df_locations[df_locations["Département"] == dept_sel]["GMR"].unique())
+        gmr_sel = st.selectbox("GMR", gmrs)
+        
+    with col_loc4:
+        # Filtre les GDP selon le GMR choisi
+        gdps = sorted(df_locations[df_locations["GMR"] == gmr_sel]["GDP"].unique())
+        gdp_sel = st.selectbox("GDP", gdps)
+else:
+    st.error("Erreur : Base de données de localisation introuvable.")
 
 
-first_year = gdp_df[gdp_df['Year'] == from_year]
-last_year = gdp_df[gdp_df['Year'] == to_year]
+st.subheader("2. Typologie")
+col_type1, col_type2, col_type3, col_type4 = st.columns(4)
 
-st.header(f'GDP in {to_year}', divider='gray')
+with col_type1:
+    acte_type = st.selectbox("Type d'acte malveillant", TYPES_ACTES)
+with col_type2:
+    cat_cible = st.selectbox("Catégorie de la cible", list(CATEGORIES_CIBLES.keys()))
+with col_type3:
+    # Affiche les sous-catégories basées sur la catégorie
+    cible_specifique = st.selectbox("Objet/Cible spécifique", CATEGORIES_CIBLES[cat_cible])
+with col_type4 : 
+    cible = st.selectbox("Organisation ciblée", ["RTE", "Enedis", "Prestataire"])
+# -----------------------------------------------------------------------------
+# 5. FORMULAIRE DE DÉTAILS (st.form)
+# -----------------------------------------------------------------------------
+st.markdown("---")
 
-''
+with st.form("incident_form"):
+    st.subheader("3. Détails et Preuves")
+    
+    c1, c2 = st.columns(2)
+    
+    with c1:
+        date_detection = st.date_input("Date de détection", datetime.now())
+        zone_id = st.number_input("Identifiant de la zone franchie", min_value=0, step=1)
+        perimetre = st.selectbox("Périmètre/Barrière enfreinte", BARRIERES)
+        
+    with c2:
+        cout_estime = st.number_input("Estimation du coût (€)", min_value=0.0, step=100.0, format="%.2f")
+        impact_client = st.checkbox("Impact Client avéré (Coupure, Retard service)")
+    
+    description = st.text_area("Description détaillée des faits", height=120, placeholder="Chronologie, mode opératoire...")
 
-cols = st.columns(4)
-
-for i, country in enumerate(selected_countries):
-    col = cols[i % len(cols)]
-
-    with col:
-        first_gdp = first_year[first_year['Country Code'] == country]['GDP'].iat[0] / 1000000000
-        last_gdp = last_year[last_year['Country Code'] == country]['GDP'].iat[0] / 1000000000
-
-        if math.isnan(first_gdp):
-            growth = 'n/a'
-            delta_color = 'off'
-        else:
-            growth = f'{last_gdp / first_gdp:,.2f}x'
-            delta_color = 'normal'
-
-        st.metric(
-            label=f'{country} GDP',
-            value=f'{last_gdp:,.0f}B',
-            delta=growth,
-            delta_color=delta_color
+    st.markdown("#### Aspects Légaux")
+    cl1, cl2 = st.columns([1, 2])
+    
+    with cl1:
+        st.write("") # Spacer
+        st.write("") 
+        plainte_deposee = st.checkbox("Une plainte a été déposée", value=False)
+    
+    with cl2:
+        # L'upload est toujours visible, mais le label guide l'utilisateur
+        fichier_plainte = st.file_uploader(
+            "Téléverser le Récépissé de Plainte (ou PV)", 
+            type=['pdf'],
+            help="Obligatoire si la case 'Plainte' est cochée."
         )
+
+    st.markdown("---")
+    submitted = st.form_submit_button("Valider et Transmettre 🚀", type="primary")
+
+# -----------------------------------------------------------------------------
+# 6. LOGIQUE DE SOUMISSION
+# -----------------------------------------------------------------------------
+if submitted:
+    # --- A. Validation des champs ---
+    erreurs = []
+    
+    if not zone_id:
+        erreurs.append("L'identifiant de la zone franchie est requis.")
+    
+    if plainte_deposee and fichier_plainte is None:
+        erreurs.append("Une plainte est déclarée mais aucun fichier n'a été joint.")
+        
+    if not api_url or not api_token:
+        erreurs.append("Les identifiants OpenCTI sont manquants.")
+
+    # --- B. Traitement ---
+    if erreurs:
+        for err in erreurs:
+            st.error(f"⚠️ {err}")
+    else:
+        try:
+            with st.spinner('Connexion et envoi vers OpenCTI...'):
+                # 1. Connexion (Instance réelle)
+                # opencti_api_client = OpenCTIApiClient(api_url, api_token)
+                
+                # 2. Préparation du Payload (JSON)
+                # C'est ici que vous mappez vos champs Streamlit vers le format STIX/OpenCTI
+                incident_payload = {
+                    "name": f"{acte_type} - {gdp_sel}",
+                    "incident_type": acte_type,
+                    "description": description,
+                    "date": date_detection.isoformat(),
+                    "location_hierarchy": {
+                        "region": region_sel,
+                        "department": dept_sel,
+                        "gmr": gmr_sel,
+                        "gdp": gdp_sel,
+                        "zone_id": zone_id
+                    },
+                    "impact": {
+                        "cost": cout_estime,
+                        "client_impact": impact_client
+                    },
+                    "target": {
+                        "category": cat_cible,
+                        "object": cible_specifique
+                    },
+                    "legal": {
+                        "complaint_filed": plainte_deposee,
+                        "file_name": fichier_plainte.name if fichier_plainte else None
+                    }
+                }
+                
+                # 3. Simulation de l'envoi (À remplacer par opencti_api_client.incident.create(...))
+                # time.sleep(1) # Simulation latence
+                
+                st.success("✅ Incident créé avec succès dans OpenCTI !")
+                
+                # Affichage des données transmises pour vérification
+                with st.expander("Voir les données JSON transmises"):
+                    st.json(incident_payload)
+                    
+        except Exception as e:
+            st.error(f"Erreur technique lors de l'envoi : {str(e)}")
