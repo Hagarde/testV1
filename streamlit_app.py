@@ -28,6 +28,7 @@ CATEGORIES_CIBLES = {
     "Bâtiments & Sites": ["Bâtiment Industriel (BI)", "Bâtiment de relayage (BR)", "Mur/Palplanche", "Portail", "Drapeau/Banderole", "Tag"],
     "Bien matériel": ["Véhicule de service", "Outillage", "Touret", "Carburant", "Téléphone", "Ordinateur"],
     "Collaborateur": ["Collaborateur"], 
+    "Aucun(e)": "Aucun(e)",
     "Autre": ["Autre"]
 }
 
@@ -108,9 +109,8 @@ with col_top2:
             gdps = sorted(df_locations[df_locations["GMR"] == gmr_sel]["GDP"].unique())
             gdp_sel = st.selectbox("GDP", gdps)
         with c_id:
-            # CORRECTION : Ajout du selectbox pour l'ID Poste
-            ids_dispos = sorted(df_locations[df_locations["GDP"] == gdp_sel]["ID_Poste"].unique())
-            id_poste_sel = st.selectbox("ID Poste", ids_dispos)
+            ids_postes = sorted(df_locations[df_locations["GDP"] == gdp_sel]["ID_Poste"].unique())
+            id_poste_sel = st.selectbox("ID Poste", ids_postes)
     else:
         st.error("Base de données introuvable.")
 
