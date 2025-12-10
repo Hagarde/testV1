@@ -28,7 +28,7 @@ CATEGORIES_CIBLES = {
     "Bâtiments & Sites": ["Bâtiment Industriel (BI)", "Bâtiment de relayage (BR)", "Mur/Palplanche", "Portail", "Drapeau/Banderole", "Tag"],
     "Bien matériel": ["Véhicule de service", "Outillage", "Touret", "Carburant", "Téléphone", "Ordinateur"],
     "Collaborateur": ["Collaborateur"], 
-    "Aucun(e)": "Aucun(e)",
+    "Aucun(e)": ["Aucun(e)"],
     "Autre": ["Autre"]
 }
 
@@ -37,7 +37,7 @@ TYPES_ACTES = [
     "Intrusion", "Incendie volontaire", "Sabotage", "Agressions", "Inscription/Ajout illicite", "Sciage", "Déboulonage"
 ]
 
-BARRIERES = ["Aucune", "Portail", "Palplanche", "Grillage simple", "Clôture électrifiée", "Mur", "Contrôle d'accès"]
+BARRIERES = ["Aucune", "Portail", "Portillion", "Palplanche", "Grillage simple", "Clôture électrifiée", "Mur", "Contrôle d'accès"]
 
 # Génération des données fictives
 def verifier_et_creer_donnees_demo():
@@ -61,6 +61,7 @@ def charger_locations():
         return pd.read_parquet("locations_db.parquet")
     elif os.path.exists("locations_db.csv"):
         return pd.read_csv("locations_db.csv")
+        print(df_locations)
     else:
         return pd.DataFrame()
 
