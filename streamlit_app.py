@@ -47,7 +47,7 @@ def verifier_et_creer_donnees_demo():
             "Département": ["Paris", "Yvelines", "Seine-et-Marne", "Bouches-du-Rhône", "Var", "Rhône"],
             "GMR": ["GMR-Paris-Nord", "GMR-Ouest", "GMR-Est", "GMR-Marseille", "GMR-Toulon", "GMR-Lyon"],
             "GDP": ["GDP-Batignolles", "GDP-Versailles", "GDP-Melun", "GDP-Prado", "GDP-Hyères", "GDP-Part-Dieu"], 
-            "ID" : ["MEREN", "NANCY", "RECYS", "CAREN", "LYPOD", "BURES"]
+            "ID_Poste" : ["MEREN", "NANCY", "RECYS", "CAREN", "LYPOD", "BURES"]
         }
         df = pd.DataFrame(data)
         df.to_csv(chemin_csv, index=False)
@@ -109,7 +109,7 @@ with col_top2:
             gdp_sel = st.selectbox("GDP", gdps)
         with c_id:
             # CORRECTION : Ajout du selectbox pour l'ID Poste
-            ids_dispos = sorted(df_locations[df_locations["GDP"] == gdp_sel]["ID"].unique())
+            ids_dispos = sorted(df_locations[df_locations["GDP"] == gdp_sel]["ID_Poste"].unique())
             id_poste_sel = st.selectbox("ID Poste", ids_dispos)
     else:
         st.error("Base de données introuvable.")
@@ -136,14 +136,12 @@ with st.form("incident_form"):
     st.subheader("2. Détails techniques & juridiques")
     
     # Bloc A : Détails physiques
-    c1, c2, c3 = st.columns(3)
+    c1, c2 = st.columns(2)
     
     with c1:
-        # CORRECTION : Réintégration du champ zone_id manquant
-        zone_id = st.text_input("Zone précise franchie", placeholder="Ex: Zone Nord, Local 12...")
-    with c2:
         perimetre = st.selectbox("Barrière franchie", BARRIERES)
-    with c3:
+        reparation_provisioire = st.checkbox('Mesure provisoire mise en place ?', True)
+    with c2:
         cout_estime = st.number_input("Coût estimé (€)", min_value=0.0, step=100.0)
 
     # Bloc B : Description et Impact
@@ -151,7 +149,6 @@ with st.form("incident_form"):
     with c_desc:
         description = st.text_area("Description des faits", height=100, placeholder="Détails du mode opératoire...")
     with c_chk:
-        st.write("Mutation / Impact")
         impact_client = st.checkbox("Impact Client (Coupure)")
 
     st.markdown("#### Aspects Légaux")
