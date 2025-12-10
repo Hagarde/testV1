@@ -26,7 +26,7 @@ Les champs de localisation se mettent à jour dynamiquement.
 # Dictionnaires pour la catégorisation (Facilement éditable)
 CATEGORIES_CIBLES = {
     "Infrastructures Réseau": ["Pylône", "Câble aérien", "Câble souterrain", "Transformateur", "Armoire"],
-    "Bâtiments & Sites": ["Agence commerciale", "Siège", "Entrepôt logistique", "Poste de garde", "Sciage de pylône/Déboulonnage"],
+    "Bâtiments & Sites": ["Mur extérieur", "Ajout d'un objet (Drapeau, Déchets, ...)", "Entrepôt logistique"],
     "Matériel & Véhicules": ["Véhicule de service", "Outillage", "Stock de cuivre", "Groupe électrogène"],
     "Systèmes d'Information": ["Poste de travail", "Serveur", "Données clients", "Application métier"],
     "Autre": ["Autre"]
@@ -34,10 +34,10 @@ CATEGORIES_CIBLES = {
 
 TYPES_ACTES = [
     "Vol (Simple)", "Vol (Effraction)", "Dégradation / Vandalisme", 
-    "Intrusion", "Incendie", "Sabotage", "Cyberattaque", "Agressions"
+    "Intrusion", "Incendie", "Sabotage", "Agressions"
 ]
 
-BARRIERES = ["Aucune", "Portail", "Palplanche", "Grillage simple", "Clôture électrifiée", "Mur", "Porte blindée", "Contrôle d'accès"]
+BARRIERES = ["Aucune", "Portail", "Palplanche", "Grillage simple", "Clôture électrifiée", "Mur", "Contrôle d'accès"]
 
 # Fonction pour créer un fichier de données fictif si aucun n'existe (pour que le code tourne direct)
 def verifier_et_creer_donnees_demo():
@@ -129,7 +129,6 @@ with st.form("incident_form"):
     
     with c1:
         date_detection = st.date_input("Date de détection", datetime.now())
-        zone_id = st.number_input("Identifiant de la zone franchie", min_value=0, step=1)
         perimetre = st.selectbox("Périmètre/Barrière enfreinte", BARRIERES)
         
     with c2:
@@ -195,7 +194,6 @@ if submitted:
                         "department": dept_sel,
                         "gmr": gmr_sel,
                         "gdp": gdp_sel,
-                        "zone_id": zone_id
                     },
                     "impact": {
                         "cost": cout_estime,
