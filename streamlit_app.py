@@ -34,7 +34,14 @@ CATEGORIES_CIBLES = {
 
 TYPES_ACTES = [
     "Vol", "Dégradation / Vandalisme", 
-    "Intrusion", "Incendie volontaire", "Sabotage", "Agressions", "Inscription/Ajout illicite", "Sciage", "Déboulonage"
+    "Intrusion", 
+    "Incendie volontaire", 
+    "Sabotage", 
+    "Agressions", 
+    "Inscription/Ajout illicite", 
+    "Sciage", 
+    "Déboulonage", 
+    "Autre"
 ]
 
 BARRIERES = ["Aucune", "Portail", "Portillion", "Palplanche", "Grillage simple", "Clôture électrifiée", "Mur", "Contrôle d'accès"]
@@ -120,11 +127,11 @@ st.write("") # Espacement
 col_type1, col_type2, col_type3, col_type4 = st.columns(4)
 
 with col_type1:
-    acte_type = st.selectbox("Type d'acte", TYPES_ACTES)
+    acte_type = st.selectbox("Type d'acte", sorted(TYPES_ACTES))
 with col_type2:
-    cat_cible = st.selectbox("Catégorie Cible", list(CATEGORIES_CIBLES.keys()))
+    cat_cible = st.selectbox("Catégorie Cible", sorted(list(CATEGORIES_CIBLES.keys())))
 with col_type3:
-    cible_specifique = st.selectbox("Objet Spécifique", CATEGORIES_CIBLES[cat_cible])
+    cible_specifique = st.selectbox("Objet Spécifique", sorted(CATEGORIES_CIBLES[cat_cible]))
 with col_type4:
     cible_orga = st.selectbox("Entité visée", ["RTE", "Enedis", "Prestataire"])
 
@@ -140,7 +147,7 @@ with st.form("incident_form"):
     c1, c2 = st.columns(2)
     
     with c1:
-        perimetre = st.selectbox("Barrière franchie", BARRIERES)
+        perimetre = st.selectbox("Barrière franchie", sorted(BARRIERES))
         reparation_provisioire = st.checkbox('Mesure provisoire mise en place ?', True)
     with c2:
         cout_estime = st.number_input("Coût estimé (€)", min_value=0.0, step=100.0)
