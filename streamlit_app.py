@@ -25,16 +25,16 @@ Les champs de localisation se mettent à jour dynamiquement.
 
 # Dictionnaires pour la catégorisation (Facilement éditable)
 CATEGORIES_CIBLES = {
-    "Infrastructures Réseau": ["Pylône", "Câble aérien", "Câble souterrain", "Transformateur", "Armoire"],
-    "Bâtiments & Sites": ["Mur extérieur", "Ajout d'un objet (Drapeau, Déchets, ...)", "Entrepôt logistique"],
-    "Matériel & Véhicules": ["Véhicule de service", "Outillage", "Stock de cuivre", "Groupe électrogène"],
-    "Systèmes d'Information": ["Poste de travail", "Serveur", "Données clients", "Application métier"],
+    "Infrastructures Réseau": ["Pylône", "Câble aérien", "Câble souterrain", "Transformateur", "Télécom", "Drapeau/Banderole", "Tag"],
+    "Bâtiments & Sites": ["Bâtiment Industriel (BI)", "Bâtiment de relayage (BR)", "Mur/Palplanche", "Portail", "Drapeau/Banderole", "Tag"],
+    "Bien matériel": ["Véhicule de service", "Outillage", "Touret", "Carburant", "Téléphone", "Ordinateur"],
+    "Collaborateur": ["Collaborateur"], 
     "Autre": ["Autre"]
 }
 
 TYPES_ACTES = [
-    "Vol (Simple)", "Vol (Effraction)", "Dégradation / Vandalisme", 
-    "Intrusion", "Incendie", "Sabotage", "Agressions"
+    "Vol", "Dégradation / Vandalisme", 
+    "Intrusion", "Incendie volontaire", "Sabotage", "Agressions", "Inscription/Ajout illicite", "Sciage", "Déboulonage"
 ]
 
 BARRIERES = ["Aucune", "Portail", "Palplanche", "Grillage simple", "Clôture électrifiée", "Mur", "Contrôle d'accès"]
