@@ -37,7 +37,7 @@ TYPES_ACTES = [
     "Intrusion", 
     "Incendie volontaire", 
     "Sabotage", 
-    "Agressions", 
+    "Agression", 
     "Inscription/Ajout illicite", 
     "Sciage", 
     "Déboulonage", 
@@ -150,7 +150,7 @@ with st.form("incident_form"):
         perimetre = st.selectbox("Barrière franchie", sorted(BARRIERES))
         reparation_provisioire = st.checkbox('Mesure provisoire mise en place ?', True)
     with c2:
-        cout_estime = st.number_input("Coût estimé (€)", min_value=0.0, step=100.0)
+        cout_estime = st.number_input("Coût estimé (k€)", min_value=0.0, step=100.0)
 
     # Bloc B : Description et Impact
     c_desc, c_chk = st.columns([3, 1])
@@ -215,7 +215,7 @@ if submitted:
                         "cible_obj": cible_specifique
                     },
                     "impact": {
-                        "cout": cout_estime,
+                        "cout": cout_estime, # en k euros et pas 
                         "client": impact_client,
                         "perimetre": perimetre
                     },
