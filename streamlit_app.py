@@ -15,15 +15,14 @@ st.set_page_config(
 
 st.title("🛡️ Portail de Remontée d'Incidents")
 st.markdown("""
-Ce formulaire permet de structurer la remontée d'information avant envoi vers **OpenCTI**.
-Les champs de localisation se mettent à jour dynamiquement.
+**Formulaire de signalement.** Veuillez renseigner les champs ci-dessous pour structurer la remontée d'information vers **OpenCTI**.
 """)
 
 # -----------------------------------------------------------------------------
-# 2. GESTION DES DONNÉES DE RÉFÉRENCE (MOCKUP & CHARGEMENT)
+# 2. DONNÉES DE RÉFÉRENCE
 # -----------------------------------------------------------------------------
 
-# Dictionnaires pour la catégorisation (Facilement éditable)
+# Vos catégories (CONSERVÉES TELLES QUELLES)
 CATEGORIES_CIBLES = {
     "Infrastructures Réseau": ["Pylône", "Câble aérien", "Câble souterrain", "Transformateur", "Télécom", "Drapeau/Banderole", "Tag"],
     "Bâtiments & Sites": ["Bâtiment Industriel (BI)", "Bâtiment de relayage (BR)", "Mur/Palplanche", "Portail", "Drapeau/Banderole", "Tag"],
@@ -39,7 +38,7 @@ TYPES_ACTES = [
 
 BARRIERES = ["Aucune", "Portail", "Palplanche", "Grillage simple", "Clôture électrifiée", "Mur", "Contrôle d'accès"]
 
-# Fonction pour créer un fichier de données fictif si aucun n'existe (pour que le code tourne direct)
+# Génération des données fictives
 def verifier_et_creer_donnees_demo():
     chemin_csv = "locations_db.csv"
     if not os.path.exists(chemin_csv):
@@ -47,176 +46,185 @@ def verifier_et_creer_donnees_demo():
             "Région": ["Ile-de-France", "Ile-de-France", "Ile-de-France", "PACA", "PACA", "Auvergne-Rhône-Alpes"],
             "Département": ["Paris", "Yvelines", "Seine-et-Marne", "Bouches-du-Rhône", "Var", "Rhône"],
             "GMR": ["GMR-Paris-Nord", "GMR-Ouest", "GMR-Est", "GMR-Marseille", "GMR-Toulon", "GMR-Lyon"],
-            "GDP": ["GDP-Batignolles", "GDP-Versailles", "GDP-Melun", "GDP-Prado", "GDP-Hyères", "GDP-Part-Dieu"]
+            "GDP": ["GDP-Batignolles", "GDP-Versailles", "GDP-Melun", "GDP-Prado", "GDP-Hyères", "GDP-Part-Dieu"], 
+            "ID" : ["MEREN", "NANCY", "RECYS", "CAREN", "LYPOD", "BURES"]
         }
         df = pd.DataFrame(data)
         df.to_csv(chemin_csv, index=False)
 
 verifier_et_creer_donnees_demo()
 
-# Chargement optimisé avec Cache
 @st.cache_data
 def charger_locations():
-    # Priorité au format Parquet (plus rapide), sinon CSV
     if os.path.exists("locations_db.parquet"):
         return pd.read_parquet("locations_db.parquet")
     elif os.path.exists("locations_db.csv"):
         return pd.read_csv("locations_db.csv")
     else:
-        return pd.DataFrame() # Retourne vide si rien trouvé
+        return pd.DataFrame()
 
 df_locations = charger_locations()
 
 # -----------------------------------------------------------------------------
-# 3. SIDEBAR : CONNEXION OPENCTI
+# 3. SIDEBAR
 # -----------------------------------------------------------------------------
-# Récupération depuis secrets.toml ou champs vides
-api_url = st.secrets["opencti"]["url"] if "opencti" in st.secrets else ""
-api_token = st.secrets["opencti"]["token"] if "opencti" in st.secrets else ""
-
-# -----------------------------------------------------------------------------
-# 4. SÉLECTEURS EN CASCADE (HORS FORMULAIRE)
-# -----------------------------------------------------------------------------
-# Ils sont hors du st.form pour permettre le rafraîchissement immédiat de la page
-
-st.subheader("1. Localisation de l'incident")
-
-if not df_locations.empty:
-    col_loc1, col_loc2, col_loc3, col_loc4 = st.columns(4)
+with st.sidebar:
+    st.header("Connexion API")
+    # Gestion sécurisée des secrets
+    api_url = st.secrets["opencti"]["url"] if "opencti" in st.secrets else ""
+    api_token = st.secrets["opencti"]["token"] if "opencti" in st.secrets else ""
     
-    with col_loc1:
-        region_sel = st.selectbox("Région", sorted(df_locations["Région"].unique()))
-    
-    with col_loc2:
-        # Filtre les départements selon la région choisie
-        deps = sorted(df_locations[df_locations["Région"] == region_sel]["Département"].unique())
-        dept_sel = st.selectbox("Département", deps)
-        
-    with col_loc3:
-        # Filtre les GMR selon le département choisi
-        gmrs = sorted(df_locations[df_locations["Département"] == dept_sel]["GMR"].unique())
-        gmr_sel = st.selectbox("GMR", gmrs)
-        
-    with col_loc4:
-        # Filtre les GDP selon le GMR choisi
-        gdps = sorted(df_locations[df_locations["GMR"] == gmr_sel]["GDP"].unique())
-        gdp_sel = st.selectbox("GDP", gdps)
-else:
-    st.error("Erreur : Base de données de localisation introuvable.")
+    if api_url and api_token:
+        st.success("✅ Identifiants chargés")
+    else:
+        st.warning("⚠️ Identifiants manquants dans secrets.toml")
 
+# -----------------------------------------------------------------------------
+# 4. SÉLECTEURS EN CASCADE (HORS DU FORMULAIRE)
+# -----------------------------------------------------------------------------
+# Permet l'interactivité instantanée
 
-st.subheader("2. Typologie")
+st.subheader("1. Contexte et Localisation")
+
+# Ligne 1 : Date et Localisation Macro
+col_top1, col_top2 = st.columns([1, 4])
+with col_top1:
+    date_detection = st.date_input("Date de détection", datetime.now())
+
+with col_top2:
+    if not df_locations.empty:
+        # On divise la partie localisation en 5 colonnes étroites
+        c_reg, c_dep, c_gmr, c_gdp, c_id = st.columns(5)
+        
+        with c_reg:
+            region_sel = st.selectbox("Région", sorted(df_locations["Région"].unique()))
+        with c_dep:
+            deps = sorted(df_locations[df_locations["Région"] == region_sel]["Département"].unique())
+            dept_sel = st.selectbox("Département", deps)
+        with c_gmr:
+            gmrs = sorted(df_locations[df_locations["Département"] == dept_sel]["GMR"].unique())
+            gmr_sel = st.selectbox("GMR", gmrs)
+        with c_gdp:
+            gdps = sorted(df_locations[df_locations["GMR"] == gmr_sel]["GDP"].unique())
+            gdp_sel = st.selectbox("GDP", gdps)
+        with c_id:
+            # CORRECTION : Ajout du selectbox pour l'ID Poste
+            ids_dispos = sorted(df_locations[df_locations["GDP"] == gdp_sel]["ID"].unique())
+            id_poste_sel = st.selectbox("ID Poste", ids_dispos)
+    else:
+        st.error("Base de données introuvable.")
+
+# Ligne 2 : Typologie
+st.write("") # Espacement
 col_type1, col_type2, col_type3, col_type4 = st.columns(4)
 
 with col_type1:
-    acte_type = st.selectbox("Type d'acte malveillant", TYPES_ACTES)
+    acte_type = st.selectbox("Type d'acte", TYPES_ACTES)
 with col_type2:
-    cat_cible = st.selectbox("Catégorie de la cible", list(CATEGORIES_CIBLES.keys()))
+    cat_cible = st.selectbox("Catégorie Cible", list(CATEGORIES_CIBLES.keys()))
 with col_type3:
-    # Affiche les sous-catégories basées sur la catégorie
-    cible_specifique = st.selectbox("Objet/Cible spécifique", CATEGORIES_CIBLES[cat_cible])
-with col_type4 : 
-    cible = st.selectbox("Organisation ciblée", ["RTE", "Enedis", "Prestataire"])
+    cible_specifique = st.selectbox("Objet Spécifique", CATEGORIES_CIBLES[cat_cible])
+with col_type4:
+    cible_orga = st.selectbox("Entité visée", ["RTE", "Enedis", "Prestataire"])
+
 # -----------------------------------------------------------------------------
 # 5. FORMULAIRE DE DÉTAILS (st.form)
 # -----------------------------------------------------------------------------
 st.markdown("---")
 
 with st.form("incident_form"):
-    st.subheader("3. Détails et Preuves")
+    st.subheader("2. Détails techniques & juridiques")
     
-    c1, c2 = st.columns(2)
+    # Bloc A : Détails physiques
+    c1, c2, c3 = st.columns(3)
     
     with c1:
-        date_detection = st.date_input("Date de détection", datetime.now())
-        perimetre = st.selectbox("Périmètre/Barrière enfreinte", BARRIERES)
-        
+        # CORRECTION : Réintégration du champ zone_id manquant
+        zone_id = st.text_input("Zone précise franchie", placeholder="Ex: Zone Nord, Local 12...")
     with c2:
-        cout_estime = st.number_input("Estimation du coût (€)", min_value=0.0, step=100.0, format="%.2f")
-        impact_client = st.checkbox("Impact Client avéré (Coupure, Retard service)")
-    
-    description = st.text_area("Description détaillée des faits", height=120, placeholder="Chronologie, mode opératoire...")
+        perimetre = st.selectbox("Barrière franchie", BARRIERES)
+    with c3:
+        cout_estime = st.number_input("Coût estimé (€)", min_value=0.0, step=100.0)
+
+    # Bloc B : Description et Impact
+    c_desc, c_chk = st.columns([3, 1])
+    with c_desc:
+        description = st.text_area("Description des faits", height=100, placeholder="Détails du mode opératoire...")
+    with c_chk:
+        st.write("Mutation / Impact")
+        impact_client = st.checkbox("Impact Client (Coupure)")
 
     st.markdown("#### Aspects Légaux")
     cl1, cl2 = st.columns([1, 2])
     
     with cl1:
-        st.write("") # Spacer
         st.write("") 
-        plainte_deposee = st.checkbox("Une plainte a été déposée", value=False)
+        plainte_deposee = st.checkbox("Plainte déposée ?", value=False)
     
     with cl2:
-        # L'upload est toujours visible, mais le label guide l'utilisateur
         fichier_plainte = st.file_uploader(
-            "Téléverser le Récépissé de Plainte (ou PV)", 
-            type=['pdf'],
-            help="Obligatoire si la case 'Plainte' est cochée."
+            "Pièce jointe (PV de plainte)", 
+            type=['pdf', 'jpg', 'png'],
+            help="Requis si plainte déposée."
         )
 
     st.markdown("---")
-    submitted = st.form_submit_button("Valider et Transmettre 🚀", type="primary")
+    submitted = st.form_submit_button("Envoyer le rapport 🚀", type="primary")
 
 # -----------------------------------------------------------------------------
-# 6. LOGIQUE DE SOUMISSION
+# 6. LOGIQUE DE VALIDATION ET ENVOI
 # -----------------------------------------------------------------------------
 if submitted:
-    # --- A. Validation des champs ---
     erreurs = []
     
+    # Validation
     if not zone_id:
-        erreurs.append("L'identifiant de la zone franchie est requis.")
+        erreurs.append("Veuillez indiquer la zone précise franchie.")
     
     if plainte_deposee and fichier_plainte is None:
-        erreurs.append("Une plainte est déclarée mais aucun fichier n'a été joint.")
+        erreurs.append("Merci de joindre le fichier de plainte.")
         
     if not api_url or not api_token:
-        erreurs.append("Les identifiants OpenCTI sont manquants.")
+        erreurs.append("Configuration OpenCTI manquante.")
 
-    # --- B. Traitement ---
     if erreurs:
         for err in erreurs:
             st.error(f"⚠️ {err}")
     else:
         try:
-            with st.spinner('Connexion et envoi vers OpenCTI...'):
-                # 1. Connexion (Instance réelle)
-                # opencti_api_client = OpenCTIApiClient(api_url, api_token)
-                
-                # 2. Préparation du Payload (JSON)
-                # C'est ici que vous mappez vos champs Streamlit vers le format STIX/OpenCTI
-                incident_payload = {
-                    "name": f"{acte_type} - {gdp_sel}",
-                    "incident_type": acte_type,
-                    "description": description,
+            with st.spinner('Envoi en cours...'):
+                # Construction du Payload
+                payload = {
+                    "titre": f"{acte_type} sur {cible_specifique} ({id_poste_sel})",
                     "date": date_detection.isoformat(),
-                    "location_hierarchy": {
+                    "entite": cible_orga,
+                    "localisation": {
                         "region": region_sel,
-                        "department": dept_sel,
-                        "gmr": gmr_sel,
                         "gdp": gdp_sel,
+                        "id_poste": id_poste_sel, # On utilise l'ID sélectionné
+                        "zone_detail": zone_id
+                    },
+                    "classification": {
+                        "acte": acte_type,
+                        "cible_cat": cat_cible,
+                        "cible_obj": cible_specifique
                     },
                     "impact": {
-                        "cost": cout_estime,
-                        "client_impact": impact_client
-                    },
-                    "target": {
-                        "category": cat_cible,
-                        "object": cible_specifique
+                        "cout": cout_estime,
+                        "client": impact_client,
+                        "perimetre": perimetre
                     },
                     "legal": {
-                        "complaint_filed": plainte_deposee,
-                        "file_name": fichier_plainte.name if fichier_plainte else None
-                    }
+                        "plainte": plainte_deposee,
+                        "fichier": fichier_plainte.name if fichier_plainte else None
+                    },
+                    "description": description
                 }
                 
-                # 3. Simulation de l'envoi (À remplacer par opencti_api_client.incident.create(...))
-                # time.sleep(1) # Simulation latence
-                
-                st.success("✅ Incident créé avec succès dans OpenCTI !")
-                
-                # Affichage des données transmises pour vérification
-                with st.expander("Voir les données JSON transmises"):
-                    st.json(incident_payload)
+                # Simulation succès
+                st.success("✅ Incident enregistré avec succès !")
+                with st.expander("Voir le JSON généré"):
+                    st.json(payload)
                     
         except Exception as e:
-            st.error(f"Erreur technique lors de l'envoi : {str(e)}")
+            st.error(f"Erreur technique : {e}")
