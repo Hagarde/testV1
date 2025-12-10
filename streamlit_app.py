@@ -24,7 +24,7 @@ st.markdown("""
 
 # Vos catégories (CONSERVÉES TELLES QUELLES)
 CATEGORIES_CIBLES = {
-    "Infrastructures Réseau": ["Pylône", "Câble aérien", "Câble souterrain", "Transformateur", "Télécom", "Drapeau/Banderole", "Tag"],
+    "Infrastructures Réseau": ["Pylône", "Câble aérien", "Câble souterrain", "Transformateur", "Télécom", "Pylône aéro souterrain", "Drapeau/Banderole", "Tag"],
     "Bâtiments & Sites": ["Bâtiment Industriel (BI)", "Bâtiment de relayage (BR)", "Mur/Palplanche", "Portail", "Drapeau/Banderole", "Tag"],
     "Bien matériel": ["Véhicule de service", "Outillage", "Touret", "Carburant", "Téléphone", "Ordinateur"],
     "Collaborateur": ["Collaborateur"], 
@@ -122,10 +122,10 @@ with col_top2:
 
 # Ligne 2 : Typologie
 st.write("") # Espacement
+st.text("Veuillez renseigner l'acte avec la plus haute intensité (Ex: Intrusion + vol -> Acte renseigné : Vol ). La quantité pourra être indiqué dans la description détaillée.")
 col_type1, col_type2, col_type3, col_type4 = st.columns(4)
-
 with col_type1:
-    acte_type = st.selectbox("Type d'acte", sorted(TYPES_ACTES))
+    acte_type = st.selectbox("Type d'acte", sorted(TYPES_ACTES), help="")
 with col_type2:
     cat_cible = st.selectbox("Catégorie Cible", sorted(list(CATEGORIES_CIBLES.keys())) + ["Autre"])
 with col_type3:
@@ -145,15 +145,15 @@ with st.form("incident_form"):
     c1, c2 = st.columns(2)
     
     with c1:
-        perimetre = st.selectbox("Barrière franchie", sorted(BARRIERES).append("Autre"))
+        perimetre = st.selectbox("Obstacle/Protection périmétrique franchie", sorted(BARRIERES) + ["Autre"], help="")
         reparation_provisioire = st.checkbox('Mesure provisoire mise en place ?', True)
     with c2:
-        cout_estime = st.number_input("Coût estimé (k€)", min_value=0.0, step=100.0)
+        cout_estime = st.number_input("Coût estimé (k€)", min_value=0, step=1)
 
     # Bloc B : Description et Impact
     c_desc, c_chk = st.columns([3, 1])
     with c_desc:
-        description = st.text_area("Description des faits", height=100, placeholder="Détails du mode opératoire...")
+        description = st.text_area("Description des faits", height=150, placeholder="Détails du mode opératoire...")
     with c_chk:
         impact_client = st.checkbox("Impact Client (Coupure)")
 
