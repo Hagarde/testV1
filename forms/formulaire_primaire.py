@@ -61,8 +61,7 @@ def app():
         with cl2:
             fichier_plainte = st.file_uploader("Pièce jointe (PV)", type=['pdf', 'jpg', 'png'])
         
-        submit = st.form_submit_button("Envoyer Rapport 🚨")
-    
+    submit = st.form_submit_button("Envoyer Rapport 🚨")
     if submit:
         # Lors de l'envoi, on a accès à TOUTES les variables (celles hors du form et celles dedans)
         if loc_data:
