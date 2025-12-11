@@ -12,8 +12,7 @@ def app():
 
     # 2. Sélecteurs Interactifs (HORS FORMULAIRE pour l'interactivité)
     # On les place ici pour qu'ils se mettent à jour instantanément
-    st.subheader("1. Qualification de l'incident")
-    
+    st.subheader("1. Qualification de l'événementInformations Générales")
     col_interactif_1, col_interactif_2 , col_interactif_3= st.columns(3)
     with col_interactif_1:
         acte_type = st.selectbox("Type d'acte", utils.TYPE_ACTE.get("Tertiaire", ["Indéfini"]))
@@ -41,7 +40,7 @@ def app():
     
         c1, c2 = st.columns(2)
         with c1:
-            date_evt = st.date_input("Date de l'intrusion")
+            
             perimetre = st.selectbox("Obstacle franchi", sorted(utils.BARRIERES) + ["Autre"])
             
             # On récupère ici les valeurs choisies plus haut pour les inclure au submit si besoin,

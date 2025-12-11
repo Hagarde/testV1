@@ -63,9 +63,9 @@ def afficher_selecteurs_localisation(referentiel):
     En fonction du mode, charge df_interne ou df_ville.
     Une fois sélectionné, déduit et affiche le contexte (Région, Dépt, etc.)
     """
-    st.subheader("📍 Localisation de l'incident")
+    st.subheader(" Information générales")
+    date_evt = st.date_input("Date de l'événement")
     
-    # 1. Choix du mode
     mode_loc = st.radio(
         "Référentiel :",
         ["🏢 Site Interne (Poste)", "🌍 Adresse Civile (Ville)"],

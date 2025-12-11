@@ -8,9 +8,6 @@ st.set_page_config(page_title="Portail Incidents", page_icon="🛡️", layout="
 
 st.title("🛡️ Portail de Remontée d'Incidents")
 
-# --- LE PREMIER CHAMP (LE ROUTEUR) ---
-st.info("Qui êtes-vous ? ")
-
 nature_incident = st.selectbox(
     "Qui êtes-vous ?",
     [
