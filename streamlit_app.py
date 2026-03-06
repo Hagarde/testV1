@@ -55,9 +55,10 @@ with c2:
     siv_present = utils.SELECT_BOX_SIV_DECLENCHE()
 
 description = utils.INPUT_DESCRIPTION()
-st.markdown("""**Avertissement relatif à la protection des données personnelles**
-            
+st.warning("""**Avertissement relatif à la protection des données personnelles**
+                
 Pour rappel, dans les zones de commentaire libre, vous devez impérativement rédiger de façon objective et jamais excessive ou insultante. Toute donnée considérée comme sensible (origine raciale ou ethnique, opinions politiques, philosophiques ou religieuses, appartenance syndicale, données relatives à la santé ou à la vie sexuelle) doit être exclue. Toute donnée permettant d’identifier des tiers doit être également exclue.""")
+
 st.markdown("---")
 
 # 4. JURIDIQUE & PREUVES
