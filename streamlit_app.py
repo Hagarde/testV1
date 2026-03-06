@@ -50,19 +50,8 @@ c1, c2 = st.columns(2)
 with c1:
     cout_estime = utils.INPUT_COUT_ESTIME()
     reparation_provisioire = utils.SELECT_BOX_MESURE_PROVISOIRE()
-
-
 with c2:
-    # --- CHANGEMENT MULTISELECT ---
-    options_obstacles = getattr(utils, 'BARRIERES', [])
-    
-    obstacles_selectionnes = st.multiselect(
-        "Dégradation périmétrique",
-        options=options_obstacles,
-        default=[],
-        help="Renseignez le type de protection périmétrique franchis ou endommagé"
-    )
-    
+    obstacles_selectionnes = utils.SELECT_OBSTACLE()
     siv_present = utils.SELECT_BOX_SIV_DECLENCHE()
 
 description = utils.INPUT_DESCRIPTION()

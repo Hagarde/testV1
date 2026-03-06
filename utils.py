@@ -33,7 +33,7 @@ TOUTES_CIBLES = [item for sublist in CATEGORIES_CIBLES.values() for item in subl
 # --- B. TYPOLOGIES (Niveau 1) ---
 TYPOLOGIE_LISTE_BRUTE = [
     "Intrusion", "Vol", "Vandalisme", "Sabotage", 
-    "Malveillance interne", "Agression / Intimidation", "Terrorisme", "Autre"
+    "Malveillance interne", "Agression / Intimidation", "Terrorisme"
 ]
 TYPOLOGIE_GLOBAL = trier_avec_autre_fin(TYPOLOGIE_LISTE_BRUTE)
 
@@ -54,7 +54,7 @@ REGLES_CASCADE = {
         "Inscription illicite (Tag)": ["Mur", "Portail", "Clôture", "Bâtiment Industriel", "Bâtiment de relayage", "Véhicule"],
         "Dégradation volontaire (Bris, destruction)": "ALL",
         "Dépôt sauvage": ["Mur", "Portail", "Clôture", "Autre Bâtiment"],
-        "Incendie volontaire d’éléments secondaires": ["Mur", "Portail", "Véhicule", "Autre"]
+        "Incendie volontaire d’éléments secondaires": ["Mur", "Portail", "Véhicule"]
     },
     "Sabotage": {
         "Incendie volontaire d’infrastructures": ["Pylône", "Pylône aérosouterain", "Caniveau", "Transformateur", "Câble souterrain", "Câble aérien", "Bâtiment Industriel", "Bâtiment de relayage"],
@@ -63,7 +63,7 @@ REGLES_CASCADE = {
         "Sabotage des liaisons télécoms": ["Télécom", "RGT", "Caniveau"]
     },
     "Malveillance interne": {
-        "Vol interne": ["Outillage", "PC/Téléphone", "Véhicule", "Touret", "RGT", "Carburant", "Autre"],
+        "Vol interne": ["Outillage", "PC/Téléphone", "Véhicule", "Touret", "RGT", "Carburant"],
         "Occupation illégale des locaux": ["Bâtiment Industriel", "Bâtiment de relayage", "Autre Bâtiment"],
         "Utilisation inappropriée des infrastructures": "ALL",
         "Détérioration ou sabotage": "ALL"
@@ -78,11 +78,10 @@ REGLES_CASCADE = {
         "Attaque armée": ["Salariés", "Prestataire", "Bâtiment Industriel", "Autre Bâtiment"],
         "Prise d’otages, séquestration": ["Salariés", "Prestataire"],
         "Action coordonnée de masse": "ALL",
-        "Menace ou chantage stratégique": ["Salariés", "Prestataire", "Autre"],
+        "Menace ou chantage stratégique": ["Salariés", "Prestataire"],
         "Sabotage massif d’installations critiques": ["Transformateur", "Bâtiment Industriel", "Bâtiment de relayage", "Télécom", "Pylône", "Pylône aérosouterain", "Câble aérien", "Câble souterrain"],
         "Utilisation de substances chimiques, biologiques, radioactives": "ALL"
     },
-    "Autre": {"Autre": ["Autre"]}
 }
 
 # --- D. AUTRES LISTES ---
@@ -99,6 +98,7 @@ def INPUT_DESCRIPTION(): return st.text_area("Description détaillée de l'acte 
 def SELECT_BOX_MESURE_PROVISOIRE(): return st.selectbox("Mesures conservatoires mises en place ?", ['Oui', 'Non'], placeholder=None, help="Veuillez préciser le type de mesure conservatoire mise en place dans la description")
 def SELECT_BOX_SIV_DECLENCHE(): return st.selectbox("Si un SIV est installé, a-t-il été déclenché ?", ['Oui', 'Non', "SIV absent du site"], placeholder=None)
 def INPUT_PLAINTE(): return st.selectbox("Statut de la plainte", ["Déposée", "Dépôt prévu", "Pas de plainte prévue"])
+def SELECT_OBSTACLE() : return st.multiselect("Dégradation périmétrique",options=BARRIERES, default=[],help="Renseignez le type de protection périmétrique franchis ou endommagé")
 
 # =============================================================================
 # 3. GESTIONNAIRE DE LISTE DYNAMIQUE (FAITS)
@@ -122,22 +122,47 @@ def gerer_saisie_actes():
         c1, c2, c3 = st.columns(3)
         
         with c1:
-            typologie = st.selectbox("1. Typologie", TYPOLOGIE_GLOBAL, key=f"typo_{uid}", accept_new_options=True)
+            # On nettoie la liste globale pour ne pas afficher "Autre"
+            typo_propres = sorted(TYPOLOGIE_GLOBAL)
+            typologie = st.selectbox(
+                "1. Typologie", 
+                options=typo_propres, 
+                key=f"typo_{uid}", 
+                accept_new_options=True,
+                index=None, # Permet d'afficher le placeholder au départ
+                placeholder="Choisissez ou tapez..."
+            )
             
         with c2:
-            raw_modes = list(REGLES_CASCADE.get(typologie, {}).keys()) if typologie in REGLES_CASCADE else ["Autre"]
-            mode_op = st.selectbox("2. Mode Opératoire", trier_avec_autre_fin(raw_modes), key=f"mode_{uid}", accept_new_options=True)
+            raw_modes = list(REGLES_CASCADE.get(typologie, {}).keys()) if typologie in REGLES_CASCADE else []
+            mode_op = st.selectbox(
+                "2. Mode Opératoire", 
+                options=sorted(raw_modes), 
+                key=f"mode_{uid}", 
+                accept_new_options=True,
+                index=None,
+                placeholder="Choisissez ou tapez..."
+            )
             
         with c3:
-            liste_cibles_brutes = ["Autre"]
+            liste_cibles_brutes = []
             if typologie in REGLES_CASCADE and mode_op in REGLES_CASCADE[typologie]:
                 regle = REGLES_CASCADE[typologie][mode_op]
-                # Si le mode opératoire peut toucher n'importe quoi (ex: Effraction), on charge toute la liste
                 liste_cibles_brutes = TOUTES_CIBLES if regle == "ALL" else regle
                 
-            cible = st.selectbox("3. Cible Spécifique", trier_avec_autre_fin(liste_cibles_brutes + ["Autre"]), key=f"cible_{uid}", accept_new_options=True)
+            cible = st.selectbox(
+                "3. Cible Spécifique", 
+                options=sorted(liste_cibles_brutes), 
+                key=f"cible_{uid}", 
+                accept_new_options=True,
+                index=None,
+                placeholder="Choisissez ou tapez..."
+            )
         
-        resultats_faits.append({"acte": typologie, "categorie": mode_op, "objet": cible})
+        # On ajoute une sécurité : si l'utilisateur ne remplit rien, on évite les None
+        if typologie and mode_op and cible:
+            resultats_faits.append({"acte": typologie, "categorie": mode_op, "objet": cible})
+            
         st.markdown("---")
         
     return resultats_faits
@@ -146,23 +171,52 @@ def gerer_saisie_actes():
 # 4. LOCALISATION
 # =============================================================================
 @st.cache_data
-def load_parquet_data(file_path):
-    if not os.path.exists(file_path): return pd.DataFrame()
-    df = pd.read_parquet(file_path)
+@st.cache_data
+def load_data(file_path):
+    """ Charge un fichier de données selon son extension (CSV ou Parquet) """
+    if not os.path.exists(file_path): 
+        return pd.DataFrame()
+    
+    # 1. Sélection dynamique du moteur de lecture
+    try:
+        if file_path.endswith('.csv'):
+            # On utilise dtype=str pour ne pas perdre les 0 initiaux des codes postaux
+            # NOTE : Si votre CSV utilise des points-virgules, remplacez sep=',' par sep=';'
+            df = pd.read_csv(file_path, sep=',', dtype=str) 
+        elif file_path.endswith('.parquet'):
+            df = pd.read_parquet(file_path)
+        else:
+            st.error(f"Format de fichier non supporté : {file_path}")
+            return pd.DataFrame()
+    except Exception as e:
+        st.error(f"Erreur lors de la lecture de {file_path} : {e}")
+        return pd.DataFrame()
+
+    # 2. Manipulation des colonnes (identique à avant)
     if 'Commune' in df.columns:
         prefix = ""
-        if 'Identifiant de référence' in df.columns: prefix = df['Identifiant de référence'].astype(str) + " - "
-        elif 'GMR_Nom_Complet' in df.columns: prefix = "SITE - "
+        if 'Identifiant de référence' in df.columns: 
+            prefix = df['Identifiant de référence'].astype(str) + " - "
+        elif 'GMR_Nom_Complet' in df.columns: 
+            prefix = "SITE - "
+            
+        # Création du label de recherche
         df['Label_Recherche'] = prefix + df['Commune'].astype(str).str.upper() + " (" + df['code_postal'].astype(str) + ")"
+        
     return df
 
 def afficher_selecteurs_localisation():
     st.subheader("📍 Localisation de l'acte de malveillance")
     date_incident = INPUT_DATETIME()
+    
     mode = st.radio("Type de lieu :", ["🏢 Site", "🌍 Commune"], horizontal=True)
     is_site = "Site" in mode
-    path = "./data/donnees_site_RTE.parquet" if is_site else "./data/donnees_villes.parquet"
-    df = load_parquet_data(path)
+    
+    # Définition du chemin selon le mode
+    path = "./data/donnees_site_RTE.csv" if is_site else "./data/donnees_villes.parquet"
+    
+    # Appel de la nouvelle fonction générique
+    df = load_data(path)
     
     if df.empty: 
         st.error(f"Fichier de données introuvable : {path}")
