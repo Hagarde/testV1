@@ -127,7 +127,8 @@ with col_db:
                 path = sauvegarder_fichier_local(uploaded_file)
                 if path: final_data["chemin_fichier"] = path
             
-            result = db_manager.sauvegarder_incident_postgres(final_data)
+            # result = db_manager.sauvegarder_incident_postgres(final_data)
+            result = {"success" :True, "id" : "Rien n'a été envoyé, c'est une plateforme un processus exploratoire"}
             
             if result and result.get("success"):
                 st.success(f"✅ Enregistré avec succès ! (ID: {result['id']})")
