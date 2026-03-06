@@ -19,7 +19,7 @@ def trier_avec_autre_fin(liste):
 # =============================================================================
 
 # --- A. LISTE DES CIBLES (Objets spécifiques) ---
-# Sert de base pour la complétion de la 3ème étape de la cascade
+
 CATEGORIES_CIBLES = {
     "Infrastructures Réseau": ["Pylône", "Pylône aérosouterain", "Câble aérien", "Câble souterrain", "Transformateur", "Télécom", "Caniveau", "RGT"],
     "Bâtiments & Sites": ["Bâtiment Industriel", "Bâtiment de relayage", "Mur", "Portail", "Palplanche", "Clôture", "Autre Bâtiment"],
@@ -27,7 +27,7 @@ CATEGORIES_CIBLES = {
     "Employé": ["Salariés", "Prestataire"],
     "Aucun": ["Aucun"],
 }
-# Génération automatique d'une liste globale pour les modes opératoires larges (ex: Effraction)
+# Génération automatique d'une liste globale pour les modes opératoires larges 
 TOUTES_CIBLES = [item for sublist in CATEGORIES_CIBLES.values() for item in sublist]
 
 # --- B. TYPOLOGIES (Niveau 1) ---
@@ -43,7 +43,8 @@ REGLES_CASCADE = {
         "Tentative d’intrusion": "ALL",
         "Effraction": "ALL",
         "Escalade ou destruction des protections périmétriques": ["Mur", "Portail", "Palplanche", "Clôture", "Autre Bâtiment"],
-        "Usage de faux": "ALL"
+        "Usage de faux": "ALL", 
+        "Intrusion": "ALL"
     },
     "Vol": {
         "Vol d’un bien matériel ou industriel": ["Outillage", "PC/Téléphone", "Véhicule", "Touret", "RGT", "Câble aérien", "Câble souterrain", "Carburant", "Groupe Electrogène (GE)"],
@@ -121,11 +122,11 @@ def gerer_saisie_actes():
         c1, c2, c3 = st.columns(3)
         
         with c1:
-            typologie = st.selectbox("1. Typologie", TYPOLOGIE_GLOBAL, key=f"typo_{uid}")
+            typologie = st.selectbox("1. Typologie", TYPOLOGIE_GLOBAL, key=f"typo_{uid}", accept_new_options=True)
             
         with c2:
             raw_modes = list(REGLES_CASCADE.get(typologie, {}).keys()) if typologie in REGLES_CASCADE else ["Autre"]
-            mode_op = st.selectbox("2. Mode Opératoire", trier_avec_autre_fin(raw_modes), key=f"mode_{uid}")
+            mode_op = st.selectbox("2. Mode Opératoire", trier_avec_autre_fin(raw_modes), key=f"mode_{uid}", accept_new_options=True)
             
         with c3:
             liste_cibles_brutes = ["Autre"]
@@ -134,7 +135,7 @@ def gerer_saisie_actes():
                 # Si le mode opératoire peut toucher n'importe quoi (ex: Effraction), on charge toute la liste
                 liste_cibles_brutes = TOUTES_CIBLES if regle == "ALL" else regle
                 
-            cible = st.selectbox("3. Cible Spécifique", trier_avec_autre_fin(liste_cibles_brutes + ["Autre"]), key=f"cible_{uid}")
+            cible = st.selectbox("3. Cible Spécifique", trier_avec_autre_fin(liste_cibles_brutes + ["Autre"]), key=f"cible_{uid}", accept_new_options=True)
         
         resultats_faits.append({"acte": typologie, "categorie": mode_op, "objet": cible})
         st.markdown("---")
